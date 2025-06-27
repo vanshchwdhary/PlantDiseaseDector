@@ -1,2 +1,27 @@
-# PlantDiseaseDector
-Your script is a Streamlit web app for detecting plant diseases using a TensorFlow model. It allows users to upload an image of a plant leaf and returns the predicted disease class.
+# 🌿 Plant Disease Classifier
+
+A simple and interactive Streamlit web application for detecting plant diseases from leaf images using a trained TensorFlow model.
+
+## 🚀 Features
+
+- Upload a plant leaf image
+- Automatically detects disease using deep learning
+- Trained on various plant types including Apple, Blueberry, Cherry, Corn, Grape, Orange, Peach, Pepper, Potato, Raspberry, Soybean, Squash, Strawberry, Tomato
+
+## 🧠 Model
+
+The model is a Convolutional Neural Network (CNN) trained using TensorFlow/Keras. It expects images resized to **128x128** pixels.
+
+## 🖼️ Classes Covered
+
+- Apple Scab
+- Black Rot
+- Cedar Apple Rust
+- Apple Healthy
+- Blueberry Healthy
+- ... *(and many more)*
+
+## 📦 Installation
+
+```bash
+pip install streamlit tensorflow pillow pandas
