@@ -1,15 +1,36 @@
+from pathlib import Path
+
 import streamlit as st
-import tensorflow as tf
 import numpy as np
 from PIL import Image
 import pickle
 import pandas as pd
 
+BASE_DIR = Path(__file__).resolve().parent
+PLANT_DISEASE_MODEL_PATH = BASE_DIR / "trained_plant_disease_model.keras"
+FERTILIZER_MODEL_PATH = BASE_DIR / "fertikizer.pkl"
+FERTILIZER_LABEL_ENCODER_PATH = BASE_DIR / "label_encoder.pkl"
+CROP_MODEL_PATH = BASE_DIR / "Navis_Base.pkl"
+HOME_IMAGE_PATH = BASE_DIR / "image.png"
+
 # Model prediction function
 def model_prediction(test_image):
-    model = tf.keras.models.load_model(
-        "/Users/vanshchwdhary/Desktop/TensorFlow/Plant/trained_plant_disease_model.keras"
-    )
+    try:
+        import tensorflow as tf
+    except Exception as exc:  # pragma: no cover
+        raise RuntimeError(
+            "TensorFlow is required for disease diagnosis. Install it to enable this feature."
+        ) from exc
+
+    if not PLANT_DISEASE_MODEL_PATH.exists():
+        raise FileNotFoundError(f"Model not found: {PLANT_DISEASE_MODEL_PATH}")
+
+    model = tf.keras.models.load_model(PLANT_DISEASE_MODEL_PATH)
+    if hasattr(test_image, "seek"):
+        try:
+            test_image.seek(0)
+        except Exception:
+            pass
     image = tf.keras.preprocessing.image.load_img(test_image, target_size=(128, 128))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
     input_arr = np.array([input_arr])  # convert single image to batch
@@ -33,15 +54,13 @@ class_names = [
     'Tomato___Target_Spot', 'Tomato___Tomato_Yellow_Leaf_Curl_Virus', 'Tomato___Tomato_mosaic_virus',
     'Tomato___healthy'
 ]
-import pandas as pd
-import pickle
 
 def predict_fertilizer(temparature, humidity, moisture, nitrogen, potassium, phosphorous, soil_type, crop_type):
 
     # Load model and label encoder
-    with open("/Users/vanshchwdhary/Desktop/TensorFlow/Plant/fertikizer.pkl", "rb") as f:
+    with open(FERTILIZER_MODEL_PATH, "rb") as f:
         model = pickle.load(f)
-    with open("/Users/vanshchwdhary/Desktop/TensorFlow/Plant/label_encoder.pkl", "rb") as f:
+    with open(FERTILIZER_LABEL_ENCODER_PATH, "rb") as f:
         le = pickle.load(f)
 
     # Define all possible columns as per training data
@@ -70,7 +89,7 @@ def predict_fertilizer(temparature, humidity, moisture, nitrogen, potassium, pho
 
 def crop_prediction(a, b, c, d, e, f, g):
     try:
-        with open("/Users/vanshchwdhary/Desktop/TensorFlow/Plant/Navis_Base.pkl", "rb") as file:
+        with open(CROP_MODEL_PATH, "rb") as file:
             model = pickle.load(file)
         features = [[float(a), float(b), float(c), float(d), float(e), float(f), float(g)]]
         ##st.write("Model type:", type(model))
@@ -100,8 +119,11 @@ if app_mode == "🏡 Home":
         "<p style='text-align: center; color:#556B2F;'>Empowering farmers with AI to keep crops healthy and fields green.</p>",
         unsafe_allow_html=True,
     )
-    img = Image.open("/Users/vanshchwdhary/Desktop/TensorFlow/Plant/image.png")
-    st.image(img, use_container_width=True, caption="AgriCare Plant Doctor")
+    if HOME_IMAGE_PATH.exists():
+        img = Image.open(HOME_IMAGE_PATH)
+        st.image(img, use_container_width=True, caption="AgriCare Plant Doctor")
+    else:
+        st.warning(f"Home image not found: {HOME_IMAGE_PATH}")
     st.markdown(
         """
         <div style='background-color:#F0FFF1; padding:25px; border-radius:10px; color:#222;'>
@@ -155,7 +177,13 @@ elif app_mode == "🌾 Diagnose Disease":
                             """,
                             unsafe_allow_html=True,
                         )
-                except Exception as e:
+                except FileNotFoundError:
+                    st.error(f"Disease model file not found: {PLANT_DISEASE_MODEL_PATH}")
+                    st.info("Train/export the model (see `Training.ipynb`) to enable this feature.")
+                except RuntimeError as e:
+                    st.error(str(e))
+                    st.info("Install TensorFlow to enable disease diagnosis.")
+                except Exception:
                     st.error("Sorry, we couldn't analyze this image. Please try another photo.")
         else:
             st.info("Please upload a clear image of a plant leaf to start diagnosis.")
@@ -198,7 +226,7 @@ elif app_mode == "🌱 Recommend Crop":
         try:
             with st.spinner("Processing recommendation..."):
                 crop = crop_prediction(N, P, K, temperature, humidity, ph, rainfall)
-                st.success(f"✅ Recommended Crop: **{crop.capitalize()}**")
+                st.success(f"✅ Recommended Crop: **{str(crop).capitalize()}**")
         except Exception as e:
             st.error("Error occurred while predicting the crop. Please check input values or model path.")  
 elif app_mode == "🌿 Suggest Fertilizer":
@@ -232,18 +260,8 @@ elif app_mode == "🌿 Suggest Fertilizer":
 
     if submit_fert:
         try:
-            # Encoding soil and crop type manually if the model requires integers
-            soil_map = {"Sandy": 0, "Loamy": 1, "Black": 2, "Red": 3, "Clayey": 4}
-            crop_map = {
-                "Maize": 0, "Sugarcane": 1, "Cotton": 2, "Tobacco": 3, "Millets": 4,
-                "Paddy": 5, "Oil seeds": 6, "Pulses": 7, "Barley": 8, "Ground Nuts": 9, "Wheat": 10
-            }
-
-            soil_encoded = soil_map[Soil_type]
-            crop_encoded = crop_map[Crop_Type]
-
             with st.spinner("Analyzing soil and crop..."):
                 fertilizer = predict_fertilizer(Temp, Humidity, Moisture, N, K, P, Soil_type, Crop_Type)
-                st.success(f"✅ Recommended Fertilizer: **{fertilizer.upper()}**")
+                st.success(f"✅ Recommended Fertilizer: **{str(fertilizer).upper()}**")
         except Exception as e:
             st.error(f"Error during fertilizer prediction: {e}")
