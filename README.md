@@ -24,4 +24,15 @@ The model is a Convolutional Neural Network (CNN) trained using TensorFlow/Keras
 ## 📦 Installation
 
 ```bash
-pip install streamlit tensorflow pillow pandas
+pip install -r requirements.txt
+```
+
+## ▶️ Run
+
+```bash
+streamlit run main.py
+```
+
+## ℹ️ Notes
+
+- Disease diagnosis requires TensorFlow and a `trained_plant_disease_model.keras` file in the project folder.
